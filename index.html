@@ -27,48 +27,18 @@
   <div id="result" role="status" aria-live="polite"></div>
 
   <script type="module">
-    const TOPIC_LABELS = { delivery: "Доставка", pricing: "Цена", other: "Другое" };
+    import { clearResult, renderReply } from "/ui.mjs";
+
     const form = document.querySelector("#form");
     const message = document.querySelector("#message");
     const button = document.querySelector("#submit");
     const result = document.querySelector("#result");
     let lastRequestId = 0;
 
-    // Builds content with textContent only: model output is never inserted as HTML.
-    function show(kind, ...nodes) {
-      result.className = kind;
-      result.replaceChildren(...nodes);
-    }
-    function el(tag, className, text) {
-      const node = document.createElement(tag);
-      if (className) node.className = className;
-      node.textContent = text;
-      return node;
-    }
-
-    function render(httpStatus, body) {
-      if (body?.status === "ready") {
-        show("ready",
-          el("div", "label", "Тема"),
-          el("strong", "", TOPIC_LABELS[body.topic] ?? body.topic),
-          el("div", "label", "Черновик ответа"),
-          el("p", "draft", body.draft));
-      } else if (body?.status === "manual_review") {
-        show("manual",
-          el("strong", "", "Нужен ручной разбор"),
-          el("p", "", "AI не смог надёжно обработать заявку. Определите тему и напишите ответ вручную."));
-      } else if (body?.status === "invalid_input") {
-        show("error", el("p", "", "Введите текст обращения."));
-      } else {
-        show("error", el("p", "", `Сервис недоступен (HTTP ${httpStatus}). Попробуйте ещё раз.`));
-      }
-    }
-
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const requestId = ++lastRequestId;
-      result.replaceChildren(); // the previous draft must never stay next to a new request
-      result.className = "";
+      clearResult(result); // the previous draft disappears before the server answers
       button.disabled = true;
       try {
         const reply = await fetch("/api/triage", {
@@ -77,9 +47,9 @@
           body: JSON.stringify({ text: message.value }),
         });
         const body = await reply.json().catch(() => null);
-        if (requestId === lastRequestId) render(reply.status, body);
+        if (requestId === lastRequestId) renderReply(result, reply.status, body);
       } catch {
-        if (requestId === lastRequestId) render(0, null);
+        if (requestId === lastRequestId) renderReply(result, 0, null);
       } finally {
         if (requestId === lastRequestId) button.disabled = false;
       }

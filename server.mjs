@@ -6,6 +6,7 @@ import { MODEL_TIMEOUT_MS, parseInput, triage } from "./triage.mjs";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const html = await readFile(new URL("./index.html", import.meta.url));
+const uiScript = await readFile(new URL("./ui.mjs", import.meta.url));
 
 class BodyTooLargeError extends Error {}
 
@@ -56,6 +57,11 @@ export function createApp({ classify = mockClassify, timeoutMs = MODEL_TIMEOUT_M
     if (request.method === "GET" && request.url === "/") {
       response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       response.end(html);
+      return;
+    }
+    if (request.method === "GET" && request.url === "/ui.mjs") {
+      response.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+      response.end(uiScript);
       return;
     }
     if (request.method !== "POST" || request.url !== "/api/triage") {

@@ -75,7 +75,10 @@ describe("POST /api/triage with the issued mock", () => {
   test("GET / serves the page, unknown route -> 404", async () => {
     const page = await fetch(`${ctx.url}/`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /Нужен ручной разбор/);
+    assert.match(await page.text(), /from "\/ui\.mjs"/);
+    const script = await fetch(`${ctx.url}/ui.mjs`);
+    assert.equal(script.status, 200);
+    assert.match(script.headers.get("content-type"), /javascript/);
     assert.equal((await fetch(`${ctx.url}/nope`)).status, 404);
   });
 });
